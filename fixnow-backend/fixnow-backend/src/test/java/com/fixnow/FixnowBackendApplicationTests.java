@@ -1,4 +1,4 @@
-package com.fixnow.fixnow_backend;
+package com.fixnow;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,5 +9,5 @@ class FixnowBackendApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }
+
