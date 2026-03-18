@@ -48,7 +48,7 @@ public class BookingController {
 	}
 
 	@PutMapping("/{id}/status")
-	@PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<BookingResponse> updateStatus(
 			@AuthenticationPrincipal UserDetails user,
 			@PathVariable("id") Long id,
@@ -60,5 +60,10 @@ public class BookingController {
 	public ResponseEntity<List<BookingResponse>> myBookings(@AuthenticationPrincipal UserDetails user) {
 		return ResponseEntity.ok(bookingService.listMyBookings(user.getUsername()));
 	}
-}
 
+	@GetMapping("/available")
+	@PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+	public ResponseEntity<List<BookingResponse>> availableBookings() {
+		return ResponseEntity.ok(bookingService.getAllAvailableBookings());
+	}
+}

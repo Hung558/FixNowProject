@@ -67,7 +67,7 @@ public class BookingService {
 		}
 		booking.setTechnician(tech);
 		booking.setStatus(BookingStatus.ACCEPTED);
-		return toResponse(booking);
+		return toResponse(bookingRepository.save(booking));
 	}
 
 	@Transactional
@@ -77,22 +77,40 @@ public class BookingService {
 		Booking booking = bookingRepository.findById(bookingId)
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Booking not found"));
 
-		// Only assigned technician can update status (simple rule)
+		System.out.println("[DEBUG] updateStatus - Actor: " + actor.getEmail() + " (" + actor.getRole() + ")");
+		System.out.println("[DEBUG] Booking: " + booking.getId() + " Status: " + booking.getStatus());
+		System.out.println("[DEBUG] Target Status: " + status);
+
+		// Technician logic
 		if (actor.getRole() == Role.TECHNICIAN) {
-			if (booking.getTechnician() == null || !booking.getTechnician().getId().equals(actor.getId())) {
+			// Allow technician to cancel ANY PENDING job (rejecting it for everyone)
+			if (status == BookingStatus.CANCELLED && booking.getStatus() == BookingStatus.PENDING) {
+				System.out.println("[DEBUG] Technician cancelling PENDING job.");
+				booking.setStatus(BookingStatus.CANCELLED);
+				return toResponse(bookingRepository.save(booking));
+			}
+
+			// For other updates, they must be the assigned technician
+			if (booking.getTechnician() == null) {
+				System.err.println("[DEBUG] 403: Booking has no technician assigned.");
+				throw new ResponseStatusException(FORBIDDEN, "Booking has no technician assigned");
+			}
+			if (!booking.getTechnician().getId().equals(actor.getId())) {
+				System.err.println("[DEBUG] 403: ID mismatch. Assigned: " + booking.getTechnician().getId() + ", Actor: " + actor.getId());
 				throw new ResponseStatusException(FORBIDDEN, "You are not assigned to this booking");
 			}
 			booking.setStatus(status);
-			return toResponse(booking);
+			return toResponse(bookingRepository.save(booking));
 		}
 
 		// Admin can update anything
 		if (actor.getRole() == Role.ADMIN) {
 			booking.setStatus(status);
-			return toResponse(booking);
+			return toResponse(bookingRepository.save(booking));
 		}
 
-		throw new ResponseStatusException(FORBIDDEN, "Not allowed to update booking status");
+		System.err.println("[DEBUG] 403: Role not authorized. Current role: " + actor.getRole());
+		throw new ResponseStatusException(FORBIDDEN, "Role not authorized to update status: " + actor.getRole());
 	}
 
 	public List<BookingResponse> listMyBookings(String email) {
@@ -105,6 +123,10 @@ public class BookingService {
 			return bookingRepository.findByTechnicianId(u.getId()).stream().map(this::toResponse).toList();
 		}
 		return bookingRepository.findAll().stream().map(this::toResponse).toList();
+	}
+
+	public List<BookingResponse> getAllAvailableBookings() {
+		return bookingRepository.findByStatus(BookingStatus.PENDING).stream().map(this::toResponse).toList();
 	}
 
 	public Booking getByIdOrThrow(Long id) {
@@ -125,4 +147,3 @@ public class BookingService {
 				.build();
 	}
 }
-
