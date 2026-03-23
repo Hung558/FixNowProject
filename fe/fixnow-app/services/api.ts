@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Change this to your Railway/Production URL after deploying
-const PRODUCTION_API_URL = 'https://fixnow-backend-production.up.railway.app/api';
+const PRODUCTION_API_URL = 'https://fixnowproject-production.up.railway.app/api';
 
 const BASE_URL = __DEV__ 
   ? (Platform.OS === 'web' ? 'http://localhost:8080/api' : 'http://10.0.2.2:8080/api')
