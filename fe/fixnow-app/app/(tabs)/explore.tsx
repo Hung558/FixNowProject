@@ -18,6 +18,75 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/services/api";
 import { router } from "expo-router";
 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#f8fafc" },
+  header: { paddingTop: 60, paddingHorizontal: 24, paddingBottom: 24 },
+  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "800" },
+  tabBar: { flexDirection: "row", backgroundColor: "#fff", padding: 6, marginHorizontal: 24, marginTop: -20, borderRadius: 16, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
+  tab: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 12 },
+  activeTab: { backgroundColor: "#38bdf8" },
+  tabText: { fontSize: 14, fontWeight: "600", color: "#64748b" },
+  activeTabText: { color: "#fff" },
+  listContent: { padding: 24, paddingTop: 32 },
+  card: { backgroundColor: "#fff", borderRadius: 20, padding: 16, marginBottom: 16, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusText: { fontSize: 11, fontWeight: "700" },
+  dateText: { fontSize: 12, color: "#94a3b8" },
+  cardDescription: { fontSize: 15, color: "#334155", lineHeight: 20, marginBottom: 16 },
+  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  idContainer: { flexDirection: "row", alignItems: "center" },
+  idText: { fontSize: 12, color: "#94a3b8", marginLeft: 4 },
+  actionRow: { flexDirection: "row", gap: 8 },
+  rejectButton: { backgroundColor: "#f1f5f9", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: "#e2e8f0" },
+  rejectButtonText: { color: "#64748b", fontSize: 13, fontWeight: "700" },
+  acceptButton: { backgroundColor: "#38bdf8", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  acceptButtonText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  emptyContainer: { alignItems: "center", marginTop: 60 },
+  emptyText: { marginTop: 12, color: "#94a3b8", fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 32 },
+  modalContent: { backgroundColor: "#fff", borderRadius: 32, padding: 32, alignItems: "center", width: "100%", maxWidth: 340 },
+  successIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#0ea5e9", justifyContent: "center", alignItems: "center", marginBottom: 24, elevation: 4, shadowColor: "#0ea5e9", shadowOpacity: 0.3, shadowRadius: 10 },
+  successTitle: { fontSize: 22, fontWeight: "800", color: "#1e293b", marginBottom: 12, textAlign: "center" },
+  successMessage: { fontSize: 16, color: "#64748b", textAlign: "center", marginBottom: 32, lineHeight: 22 },
+  modalButton: {
+    backgroundColor: "#1e293b",
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: "100%",
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  noStoreContainer: {
+    padding: 32,
+    alignItems: "center",
+    backgroundColor: "#fff",
+    margin: 24,
+    borderRadius: 24,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+  },
+  noStoreTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1e293b",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noStoreText: {
+    fontSize: 14,
+    color: "#64748b",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+});
+
 interface Booking {
   id: number;
   serviceId: number;
@@ -183,6 +252,14 @@ export default function ExploreScreen() {
         </View>
       )}
 
+      {user.role === "TECHNICIAN" && !user.storeCode && activeTab === "AVAILABLE" && (
+        <View style={styles.noStoreContainer}>
+          <MaterialCommunityIcons name="store-alert" size={48} color="#f59e0b" />
+          <Text style={styles.noStoreTitle}>Bạn chưa tham gia cửa hàng</Text>
+          <Text style={styles.noStoreText}>Hãy vào phần Cá nhân để tạo hoặc tham gia một cửa hàng để bắt đầu nhận việc nhé!</Text>
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 40 }} />
       ) : (
@@ -230,37 +307,4 @@ export default function ExploreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
-  header: { paddingTop: 60, paddingHorizontal: 24, paddingBottom: 24 },
-  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "800" },
-  tabBar: { flexDirection: "row", backgroundColor: "#fff", padding: 6, marginHorizontal: 24, marginTop: -20, borderRadius: 16, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 12 },
-  activeTab: { backgroundColor: "#38bdf8" },
-  tabText: { fontSize: 14, fontWeight: "600", color: "#64748b" },
-  activeTabText: { color: "#fff" },
-  listContent: { padding: 24, paddingTop: 32 },
-  card: { backgroundColor: "#fff", borderRadius: 20, padding: 16, marginBottom: 16, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: "700" },
-  dateText: { fontSize: 12, color: "#94a3b8" },
-  cardDescription: { fontSize: 15, color: "#334155", lineHeight: 20, marginBottom: 16 },
-  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  idContainer: { flexDirection: "row", alignItems: "center" },
-  idText: { fontSize: 12, color: "#94a3b8", marginLeft: 4 },
-  actionRow: { flexDirection: "row", gap: 8 },
-  rejectButton: { backgroundColor: "#f1f5f9", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: "#e2e8f0" },
-  rejectButtonText: { color: "#64748b", fontSize: 13, fontWeight: "700" },
-  acceptButton: { backgroundColor: "#38bdf8", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  acceptButtonText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  emptyContainer: { alignItems: "center", marginTop: 60 },
-  emptyText: { marginTop: 12, color: "#94a3b8", fontSize: 16 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 32 },
-  modalContent: { backgroundColor: "#fff", borderRadius: 32, padding: 32, alignItems: "center", width: "100%", maxWidth: 340 },
-  successIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#0ea5e9", justifyContent: "center", alignItems: "center", marginBottom: 24, elevation: 4, shadowColor: "#0ea5e9", shadowOpacity: 0.3, shadowRadius: 10 },
-  successTitle: { fontSize: 22, fontWeight: "800", color: "#1e293b", marginBottom: 12, textAlign: "center" },
-  successMessage: { fontSize: 16, color: "#64748b", textAlign: "center", marginBottom: 32, lineHeight: 22 },
-  modalButton: { backgroundColor: "#1e293b", paddingVertical: 14, paddingHorizontal: 32, borderRadius: 16, width: "100%" },
-  modalButtonText: { color: "#fff", fontWeight: "700", fontSize: 16, textAlign: "center" },
-});
+

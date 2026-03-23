@@ -20,5 +20,6 @@ public class BookingResponse {
 	private String imageUrl;
 	private BookingStatus status;
 	private Instant createdAt;
+	private String storeCode;
 }
 

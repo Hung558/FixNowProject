@@ -34,8 +34,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const response = await api.post("/auth/login", { email, password });
-      const { token, userId, name, email: userEmail, role } = response.data;
-      await login({ id: userId, name, email: userEmail, role }, token);
+      const { token, userId, name, email: userEmail, role, storeCode } = response.data;
+      await login({ id: userId, name, email: userEmail, role, storeCode }, token);
     } catch (error: any) {
       const message = error.response?.data?.message || "Invalid credentials. Please try again.";
       Alert.alert("Login Failed", message);

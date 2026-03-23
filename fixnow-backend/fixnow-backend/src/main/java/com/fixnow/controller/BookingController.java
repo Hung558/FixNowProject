@@ -63,7 +63,7 @@ public class BookingController {
 
 	@GetMapping("/available")
 	@PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
-	public ResponseEntity<List<BookingResponse>> availableBookings() {
-		return ResponseEntity.ok(bookingService.getAllAvailableBookings());
+	public ResponseEntity<List<BookingResponse>> availableBookings(@AuthenticationPrincipal UserDetails user) {
+		return ResponseEntity.ok(bookingService.getAllAvailableBookings(user.getUsername()));
 	}
 }

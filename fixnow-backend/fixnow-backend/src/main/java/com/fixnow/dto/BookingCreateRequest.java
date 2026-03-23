@@ -11,5 +11,6 @@ public class BookingCreateRequest {
 	private String description;
 
 	private String imageUrl;
+	private String storeCode;
 }
 

@@ -19,6 +19,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 
 @Data
 @Builder
@@ -52,5 +54,9 @@ public class User {
 	@OneToMany(mappedBy = "technician", fetch = FetchType.LAZY)
 	@Builder.Default
 	private List<Booking> technicianBookings = new ArrayList<>();
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "store_id")
+	private Store store;
 }
 
