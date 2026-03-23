@@ -34,15 +34,22 @@ public class BookingService {
 
 	@Transactional
 	public BookingResponse createBooking(String customerEmail, BookingCreateRequest req) {
+		System.out.println("[CREATE] START - email=" + customerEmail + ", serviceId=" + req.getServiceId() + ", storeCode=" + req.getStoreCode());
+		
 		User customer = userRepository.findByEmail(customerEmail.toLowerCase())
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Customer not found"));
+		System.out.println("[CREATE] User found: " + customer.getEmail() + " role=" + customer.getRole());
+		
 		if (customer.getRole() != Role.CUSTOMER) {
 			throw new ResponseStatusException(FORBIDDEN, "Only CUSTOMER can create booking");
 		}
 
+		com.fixnow.entity.Service svc = serviceService.getByIdOrThrow(req.getServiceId());
+		System.out.println("[CREATE] Service found: id=" + svc.getId() + " name=" + svc.getName());
+
 		Booking booking = Booking.builder()
 				.customer(customer)
-				.service(serviceService.getByIdOrThrow(req.getServiceId()))
+				.service(svc)
 				.description(req.getDescription())
 				.imageUrl(req.getImageUrl())
 				.status(BookingStatus.PENDING)
@@ -54,9 +61,12 @@ public class BookingService {
 		
 		Store store = storeRepository.findByStoreCode(req.getStoreCode().toUpperCase())
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Store not found with code: " + req.getStoreCode()));
+		System.out.println("[CREATE] Store found: id=" + store.getId() + " code=" + store.getStoreCode());
 		booking.setStore(store);
 
+		System.out.println("[CREATE] Saving booking...");
 		booking = bookingRepository.save(booking);
+		System.out.println("[CREATE] SUCCESS! Booking ID=" + booking.getId());
 		return toResponse(booking);
 	}
 
@@ -77,9 +87,11 @@ public class BookingService {
 			throw new ResponseStatusException(BAD_REQUEST, "Only PENDING booking can be accepted");
 		}
 
-		// Security: Technician can only accept bookings from their store
-		if (booking.getStore() == null || tech.getStore() == null || !booking.getStore().getId().equals(tech.getStore().getId())) {
-			throw new ResponseStatusException(FORBIDDEN, "Booking does not belong to your store");
+		// Security: Legacy bookings without store can be accepted. Otherwise, strictly enforce store matching.
+		if (booking.getStore() != null) {
+			if (tech.getStore() == null || !booking.getStore().getId().equals(tech.getStore().getId())) {
+				throw new ResponseStatusException(FORBIDDEN, "Booking does not belong to your store");
+			}
 		}
 
 		booking.setTechnician(tech);
@@ -100,13 +112,23 @@ public class BookingService {
 
 		// Technician logic
 		if (actor.getRole() == Role.TECHNICIAN) {
-			// Allow technician to cancel ANY PENDING job (rejecting it for everyone)
-			if (status == BookingStatus.CANCELLED && booking.getStatus() == BookingStatus.PENDING) {
-				System.out.println("[DEBUG] Technician cancelling PENDING job.");
+			// Technician cancelling a job
+			if (status == BookingStatus.CANCELLED) {
+				if (booking.getStatus() == BookingStatus.CANCELLED) {
+					return toResponse(booking); // Idempotent: already cancelled
+				}
+				if (booking.getStatus() != BookingStatus.PENDING) {
+					throw new ResponseStatusException(BAD_REQUEST, "Cannot reject booking because it is already " + booking.getStatus());
+				}
 				
-				// Security: Technician can only cancel PENDING bookings from their store
-				if (booking.getStore() == null || actor.getStore() == null || !booking.getStore().getId().equals(actor.getStore().getId())) {
-					throw new ResponseStatusException(FORBIDDEN, "Booking does not belong to your store");
+				// Security: Legacy bookings without store allow cancellation. Otherwise, strictly enforce store matching.
+				if (booking.getStore() != null) {
+					if (actor.getStore() == null) {
+						throw new ResponseStatusException(BAD_REQUEST, "Diagnostic Error: Actor (Tech) has NULL store in DB, but Booking has Store ID: " + booking.getStore().getId());
+					}
+					if (!booking.getStore().getId().equals(actor.getStore().getId())) {
+						throw new ResponseStatusException(BAD_REQUEST, "Diagnostic Error: Store mismatch. Booking Store ID = " + booking.getStore().getId() + ", Actor Store ID = " + actor.getStore().getId());
+					}
 				}
 
 				booking.setStatus(BookingStatus.CANCELLED);
@@ -115,11 +137,9 @@ public class BookingService {
 
 			// For other updates, they must be the assigned technician
 			if (booking.getTechnician() == null) {
-				System.err.println("[DEBUG] 403: Booking has no technician assigned.");
-				throw new ResponseStatusException(FORBIDDEN, "Booking has no technician assigned");
+				throw new ResponseStatusException(BAD_REQUEST, "Booking has no technician assigned. Cannot change status to " + status);
 			}
 			if (!booking.getTechnician().getId().equals(actor.getId())) {
-				System.err.println("[DEBUG] 403: ID mismatch. Assigned: " + booking.getTechnician().getId() + ", Actor: " + actor.getId());
 				throw new ResponseStatusException(FORBIDDEN, "You are not assigned to this booking");
 			}
 			booking.setStatus(status);
