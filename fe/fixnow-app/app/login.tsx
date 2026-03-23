@@ -6,10 +6,10 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Animated,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,12 +22,39 @@ const { width } = Dimensions.get("window");
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [errorAnim] = useState(new Animated.Value(0));
   const { login } = useAuth();
+
+  const showErrorMessage = (msg: string) => {
+    setError(msg);
+    Animated.sequence([
+      Animated.timing(errorAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(3000),
+      Animated.timing(errorAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setError(null));
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      showErrorMessage("Please fill in all fields");
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showErrorMessage("Please enter a valid email address");
       return;
     }
 
@@ -36,9 +63,9 @@ export default function LoginScreen() {
       const response = await api.post("/auth/login", { email, password });
       const { token, userId, name, email: userEmail, role, storeCode } = response.data;
       await login({ id: userId, name, email: userEmail, role, storeCode }, token);
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Invalid credentials. Please try again.";
-      Alert.alert("Login Failed", message);
+    } catch (err: any) {
+      const message = err.response?.data?.message || "Invalid credentials. Please try again.";
+      showErrorMessage(message);
     } finally {
       setLoading(false);
     }
@@ -57,6 +84,28 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.form}>
+          {error && (
+            <Animated.View
+              style={[
+                styles.errorBanner,
+                {
+                  opacity: errorAnim,
+                  transform: [
+                    {
+                      translateY: errorAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-10, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <MaterialCommunityIcons name="alert-circle" size={20} color="#ef4444" />
+              <Text style={styles.errorText}>{error}</Text>
+            </Animated.View>
+          )}
+
           <View style={styles.inputContainer}>
             <MaterialCommunityIcons name="email-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
             <TextInput
@@ -78,8 +127,15 @@ export default function LoginScreen() {
               placeholderTextColor="#94a3b8"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
             />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <MaterialCommunityIcons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#94a3b8"
+              />
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -138,6 +194,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
   },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.2)",
+    gap: 8,
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 14,
+    fontWeight: "600",
+    flex: 1,
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -163,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 24,
+    marginTop: 16,
     shadowColor: "#38bdf8",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

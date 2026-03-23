@@ -6,10 +6,10 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Animated,
 } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,13 +21,46 @@ export default function RegisterScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"CUSTOMER" | "TECHNICIAN">("CUSTOMER");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [errorAnim] = useState(new Animated.Value(0));
   const { login } = useAuth();
+
+  const showErrorMessage = (msg: string) => {
+    setError(msg);
+    Animated.sequence([
+      Animated.timing(errorAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(3000),
+      Animated.timing(errorAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setError(null));
+  };
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      showErrorMessage("Please fill in all fields");
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showErrorMessage("Please enter a valid email address");
+      return;
+    }
+
+    // Password validation (matching backend @Size(min = 6))
+    if (password.length < 6) {
+      showErrorMessage("Password must be at least 6 characters long");
       return;
     }
 
@@ -36,9 +69,9 @@ export default function RegisterScreen() {
       const response = await api.post("/auth/register", { name, email, password, role });
       const { token, userId, name: userName, email: userEmail, role: userRole, storeCode } = response.data;
       await login({ id: userId, name: userName, email: userEmail, role: userRole, storeCode }, token);
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Registration failed. Please try again.";
-      Alert.alert("Registration Failed", message);
+    } catch (err: any) {
+      const message = err.response?.data?.message || "Registration failed. Please try again.";
+      showErrorMessage(message);
     } finally {
       setLoading(false);
     }
@@ -61,6 +94,28 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.form}>
+            {error && (
+              <Animated.View
+                style={[
+                  styles.errorBanner,
+                  {
+                    opacity: errorAnim,
+                    transform: [
+                      {
+                        translateY: errorAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-10, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons name="alert-circle" size={20} color="#ef4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </Animated.View>
+            )}
+
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons name="account-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
               <TextInput
@@ -93,8 +148,15 @@ export default function RegisterScreen() {
                 placeholderTextColor="#94a3b8"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
               />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#94a3b8"
+                />
+              </TouchableOpacity>
             </View>
 
             <Text style={styles.label}>I am a:</Text>
@@ -186,6 +248,23 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.2)",
+    gap: 8,
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 14,
+    fontWeight: "600",
+    flex: 1,
   },
   inputContainer: {
     flexDirection: "row",

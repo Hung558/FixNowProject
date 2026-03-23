@@ -21,7 +21,7 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(tabs)' || segments[0] === 'create-order' || segments[0] === 'order-detail';
+    const inAuthGroup = segments[0] === '(tabs)';
     
     if (!user && inAuthGroup) {
       // If we're not logged in, but we're in a protected group, go to login
@@ -43,8 +43,6 @@ function RootLayoutNav() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="create-order" options={{ headerShown: true, title: "Đặt lịch" }} />
-        <Stack.Screen name="order-detail" options={{ headerShown: true, title: "Chi tiết" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

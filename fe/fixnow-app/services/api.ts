@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PRODUCTION_API_URL = 'https://fixnowproject-production.up.railway.app/api';
 
 const BASE_URL = __DEV__ 
-  ? (Platform.OS === 'web' ? 'http://localhost:8080/api' : 'http://10.0.2.2:8080/api')
+  ? (Platform.OS === 'web' ? 'http://localhost:8080/api' : 'http://192.168.0.102:8080/api')
   : PRODUCTION_API_URL;
 
 const api = axios.create({
