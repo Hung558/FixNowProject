@@ -32,15 +32,15 @@ public class BookingController {
 	private final BookingService bookingService;
 
 	@PostMapping
-	@PreAuthorize("hasRole('CUSTOMER')")
 	public ResponseEntity<BookingResponse> create(
 			@AuthenticationPrincipal UserDetails user,
 			@Valid @RequestBody BookingCreateRequest req) {
+		System.out.println("[CONTROLLER] createBooking called by: " + user.getUsername() + " authorities: " + user.getAuthorities());
 		return ResponseEntity.ok(bookingService.createBooking(user.getUsername(), req));
 	}
 
 	@PutMapping("/{id}/accept")
-	@PreAuthorize("hasRole('TECHNICIAN')")
+	@PreAuthorize("hasAuthority('ROLE_TECHNICIAN')")
 	public ResponseEntity<BookingResponse> accept(
 			@AuthenticationPrincipal UserDetails user,
 			@PathVariable("id") Long id) {
@@ -62,7 +62,7 @@ public class BookingController {
 	}
 
 	@GetMapping("/available")
-	@PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+	@PreAuthorize("hasAnyAuthority('ROLE_TECHNICIAN','ROLE_ADMIN')")
 	public ResponseEntity<List<BookingResponse>> availableBookings(@AuthenticationPrincipal UserDetails user) {
 		return ResponseEntity.ok(bookingService.getAllAvailableBookings(user.getUsername()));
 	}

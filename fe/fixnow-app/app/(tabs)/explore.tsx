@@ -104,6 +104,7 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"MY_JOBS" | "AVAILABLE">("MY_JOBS");
   const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [processingIds, setProcessingIds] = useState<Record<number, boolean>>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -132,6 +133,8 @@ export default function ExploreScreen() {
   };
 
   const handleAcceptJob = async (id: number) => {
+    if (processingIds[id]) return;
+    setProcessingIds(prev => ({ ...prev, [id]: true }));
     try {
       await api.put(`/bookings/${id}/accept`);
       setShowAcceptModal(true);
@@ -142,10 +145,14 @@ export default function ExploreScreen() {
       } else {
         Alert.alert("Lỗi", "Không thể nhận việc.");
       }
+    } finally {
+      setProcessingIds(prev => ({ ...prev, [id]: false }));
     }
   };
 
   const handleRejectJob = async (id: number) => {
+    if (processingIds[id]) return;
+    setProcessingIds(prev => ({ ...prev, [id]: true }));
     try {
       await api.put(`/bookings/${id}/status`, { status: "CANCELLED" });
       fetchData();
@@ -160,6 +167,8 @@ export default function ExploreScreen() {
       } else {
         Alert.alert(statusTitle, errorMsg);
       }
+    } finally {
+      setProcessingIds(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -198,11 +207,19 @@ export default function ExploreScreen() {
           
           {user?.role === "TECHNICIAN" && item.status === "PENDING" && (
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.rejectButton} onPress={() => handleRejectJob(item.id)}>
-                <Text style={styles.rejectButtonText}>Hủy</Text>
+              <TouchableOpacity 
+                style={[styles.rejectButton, processingIds[item.id] && { opacity: 0.5 }]} 
+                onPress={() => handleRejectJob(item.id)}
+                disabled={processingIds[item.id]}
+              >
+                {processingIds[item.id] ? <ActivityIndicator size="small" color="#ef4444" /> : <Text style={styles.rejectButtonText}>Hủy</Text>}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.acceptButton} onPress={() => handleAcceptJob(item.id)}>
-                <Text style={styles.acceptButtonText}>Nhận việc</Text>
+              <TouchableOpacity 
+                style={[styles.acceptButton, processingIds[item.id] && { opacity: 0.5 }]} 
+                onPress={() => handleAcceptJob(item.id)}
+                disabled={processingIds[item.id]}
+              >
+                {processingIds[item.id] ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.acceptButtonText}>Nhận việc</Text>}
               </TouchableOpacity>
             </View>
           )}

@@ -112,9 +112,10 @@ Yêu cầu/Lỗi: ${detail}
       setImageUrl("");
       setShowSuccessModal(true);
     } catch (error: any) {
-      console.error(error);
-      const errorMsg = error.response?.data?.message || "Mã cửa hàng không tồn tại hoặc có lỗi xảy ra.";
-      setErrorMessage(errorMsg);
+      console.error("Create booking error:", error.response?.status, error.response?.data);
+      const data = error.response?.data;
+      const errorMsg = data?.message || data?.error || data?.detail || "Mã cửa hàng không tồn tại hoặc có lỗi xảy ra.";
+      setErrorMessage(`Lỗi (${error.response?.status || '?'}): ${errorMsg}`);
       setShowErrorModal(true);
     } finally {
       setLoading(false);
