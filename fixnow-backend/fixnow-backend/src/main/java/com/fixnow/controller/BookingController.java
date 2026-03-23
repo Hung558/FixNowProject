@@ -35,7 +35,6 @@ public class BookingController {
 	public ResponseEntity<BookingResponse> create(
 			@AuthenticationPrincipal UserDetails user,
 			@Valid @RequestBody BookingCreateRequest req) {
-		System.out.println("[CONTROLLER] createBooking called by: " + user.getUsername() + " authorities: " + user.getAuthorities());
 		return ResponseEntity.ok(bookingService.createBooking(user.getUsername(), req));
 	}
 
