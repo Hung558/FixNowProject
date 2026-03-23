@@ -16,6 +16,9 @@ import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import api from "@/services/api";
+import { createBooking } from "@/services/booking.service";
+import { getStoreByCode } from "@/services/store.service";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function CreateOrderScreen() {
   const { serviceId, serviceName } = useLocalSearchParams();
@@ -25,6 +28,11 @@ export default function CreateOrderScreen() {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [storeCode, setStoreCode] = useState("");
+  const [storeHistory, setStoreHistory] = useState<{code: string, name: string}[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Reset fields when service changes
   React.useEffect(() => {
@@ -32,24 +40,55 @@ export default function CreateOrderScreen() {
     setDeviceType("");
     setDetail("");
     setImageUrl("");
+    loadStoreHistory();
   }, [serviceId]);
+
+  const loadStoreHistory = async () => {
+    const history = await AsyncStorage.getItem("storeHistory");
+    if (history) {
+      try {
+        const parsed = JSON.parse(history);
+        if (Array.isArray(parsed)) {
+          // Backward compatibility: if it's an array of strings, convert to objects
+          const normalized = parsed.map(item => {
+            if (typeof item === 'string') {
+              return { code: item, name: "Cửa hàng đã dùng (Chưa rõ tên)" };
+            }
+            return item;
+          });
+          setStoreHistory(normalized);
+        }
+      } catch(e) {
+        console.error("Failed to parse history", e);
+      }
+    }
+  };
+
+  const saveToHistory = async (store: {code: string, name: string}) => {
+    if (!store || !store.code) return;
+    const newHistory = [store, ...storeHistory.filter(c => c.code !== store.code)].slice(0, 5);
+    setStoreHistory(newHistory);
+    await AsyncStorage.setItem("storeHistory", JSON.stringify(newHistory));
+  };
 
   const isRepair = serviceName?.toString().toLowerCase().includes("sửa");
   const isCleaning = serviceName?.toString().toLowerCase().includes("vệ sinh");
   const isUpgrade = serviceName?.toString().toLowerCase().includes("nâng cấp");
 
   const handleSubmit = async () => {
-    if (!detail) {
-      if (Platform.OS === 'web') {
-        alert("Vui lòng nhập đầy đủ thông tin yêu cầu");
-      } else {
-        Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin yêu cầu");
-      }
+    if (!detail || !storeCode.trim()) {
+      setErrorMessage("Vui lòng nhập đầy đủ yêu cầu sửa chữa và Mã cửa hàng (Bắt buộc).");
+      setShowErrorModal(true);
       return;
     }
 
     setLoading(true);
     try {
+      const formattedCode = storeCode.trim().toUpperCase();
+      
+      // Fetch store details to secure its existence and retrieve name concurrently
+      const storeInfo = await getStoreByCode(formattedCode);
+
       // Combine info into description for the backend
       const combinedDescription = `
 Máy: ${deviceName}
@@ -57,11 +96,14 @@ Loại: ${deviceType}
 Yêu cầu/Lỗi: ${detail}
       `.trim();
 
-      await api.post("/bookings", {
+      await createBooking({
         serviceId: Number(serviceId),
         description: combinedDescription,
         imageUrl,
+        storeCode: storeInfo.storeCode
       });
+
+      await saveToHistory({ code: storeInfo.storeCode, name: storeInfo.name });
       
       // Reset after success
       setDeviceName("");
@@ -71,12 +113,9 @@ Yêu cầu/Lỗi: ${detail}
       setShowSuccessModal(true);
     } catch (error: any) {
       console.error(error);
-      const errorMsg = error.response?.data?.message || "Không thể tạo đơn hàng. Vui lòng thử lại.";
-      if (Platform.OS === 'web') {
-        alert("Lỗi: " + errorMsg);
-      } else {
-        Alert.alert("Lỗi", errorMsg);
-      }
+      const errorMsg = error.response?.data?.message || "Mã cửa hàng không tồn tại hoặc có lỗi xảy ra.";
+      setErrorMessage(errorMsg);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -176,6 +215,46 @@ Yêu cầu/Lỗi: ${detail}
             />
           </View>
 
+          <Text style={styles.inputLabel}>Mã cửa hàng (Store Code) - Bắt buộc</Text>
+          <View style={styles.inputContainer}>
+            <MaterialCommunityIcons name="store-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Nhập mã cửa hàng (ví dụ: ABC123)"
+              placeholderTextColor="#94a3b8"
+              value={storeCode}
+              onChangeText={(text) => setStoreCode(text.toUpperCase())}
+              onFocus={() => storeHistory.length > 0 && setShowHistory(true)}
+            />
+            {storeHistory.length > 0 && (
+              <TouchableOpacity onPress={() => setShowHistory(!showHistory)} style={{ padding: 8 }}>
+                <MaterialCommunityIcons name={showHistory ? "chevron-up" : "chevron-down"} size={20} color="#64748b" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {showHistory && storeHistory.length > 0 && (
+            <View style={styles.historyContainer}>
+              <Text style={styles.historyLabel}>Cửa hàng đã dùng gần đây:</Text>
+              {storeHistory.map((store) => (
+                <TouchableOpacity
+                  key={store.code}
+                  style={styles.historyItem}
+                  onPress={() => {
+                    setStoreCode(store.code);
+                    setShowHistory(false);
+                  }}
+                >
+                  <MaterialCommunityIcons name="store" size={20} color="#0ea5e9" />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={styles.historyItemName} numberOfLines={1}>{store.name}</Text>
+                    <Text style={styles.historyItemCode}>Mã: {store.code}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.buttonDisabled]}
             onPress={handleSubmit}
@@ -218,6 +297,27 @@ Yêu cầu/Lỗi: ${detail}
             </Text>
             <TouchableOpacity style={styles.modalButton} onPress={handleCloseSuccess}>
               <Text style={styles.modalButtonText}>Về trang chủ</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        visible={showErrorModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.successIconContainer, { backgroundColor: '#fee2e2', shadowColor: '#ef4444' }]}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={60} color="#ef4444" />
+            </View>
+            <Text style={styles.successTitle}>Thông báo</Text>
+            <Text style={styles.successMessage}>{errorMessage}</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#ef4444' }]} onPress={() => setShowErrorModal(false)}>
+              <Text style={styles.modalButtonText}>Đóng</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -421,5 +521,36 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  historyContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  historyLabel: {
+    fontSize: 12,
+    color: "#64748b",
+    marginBottom: 8,
+    fontWeight: "600",
+  },
+  historyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  historyItemName: {
+    color: "#1e293b",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  historyItemCode: {
+    color: "#64748b",
+    fontSize: 13,
+    marginTop: 2,
   },
 });

@@ -15,6 +15,7 @@ import com.fixnow.dto.LoginRequest;
 import com.fixnow.dto.RegisterRequest;
 import com.fixnow.dto.UserResponse;
 import com.fixnow.entity.Role;
+import com.fixnow.entity.Store;
 import com.fixnow.entity.User;
 import com.fixnow.repository.UserRepository;
 import com.fixnow.security.JwtUtil;
@@ -52,6 +53,7 @@ public class UserService {
 				.name(user.getName())
 				.email(user.getEmail())
 				.role(user.getRole())
+				.storeCode(user.getStore() != null ? user.getStore().getStoreCode() : null)
 				.build();
 	}
 
@@ -69,6 +71,7 @@ public class UserService {
 				.name(user.getName())
 				.email(user.getEmail())
 				.role(user.getRole())
+				.storeCode(user.getStore() != null ? user.getStore().getStoreCode() : null)
 				.build();
 	}
 
@@ -87,6 +90,7 @@ public class UserService {
 				.name(u.getName())
 				.email(u.getEmail())
 				.role(u.getRole())
+				.storeCode(u.getStore() != null ? u.getStore().getStoreCode() : null)
 				.build();
 	}
 }

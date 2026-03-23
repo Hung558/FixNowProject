@@ -1,0 +1,48 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.fixnow:fixnow-backend >----------------------
+[INFO] Building fixnow-backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ fixnow-backend ---
+[INFO] Deleting D:\FPTMonHocKi7\MMA301\FixNowProject\fixnow-backend\fixnow-backend\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ fixnow-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ fixnow-backend ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 41 source files with javac [debug parameters release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/FPTMonHocKi7/MMA301/FixNowProject/fixnow-backend/fixnow-backend/src/main/java/com/fixnow/service/BookingService.java:[29,23] cannot find symbol
+  symbol:   class BookingRepository
+  location: class com.fixnow.service.BookingService
+[ERROR] /D:/FPTMonHocKi7/MMA301/FixNowProject/fixnow-backend/fixnow-backend/src/main/java/com/fixnow/service/BookingService.java:[26,1] cannot find symbol
+  symbol:   class BookingRepository
+  location: class com.fixnow.service.BookingService
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  14.062 s
+[INFO] Finished at: 2026-03-22T19:27:50+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project fixnow-backend: Compilation failure: Compilation failure: 
+[ERROR] /D:/FPTMonHocKi7/MMA301/FixNowProject/fixnow-backend/fixnow-backend/src/main/java/com/fixnow/service/BookingService.java:[29,23] cannot find symbol
+[ERROR]   symbol:   class BookingRepository
+[ERROR]   location: class com.fixnow.service.BookingService
+[ERROR] /D:/FPTMonHocKi7/MMA301/FixNowProject/fixnow-backend/fixnow-backend/src/main/java/com/fixnow/service/BookingService.java:[26,1] cannot find symbol
+[ERROR]   symbol:   class BookingRepository
+[ERROR]   location: class com.fixnow.service.BookingService
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

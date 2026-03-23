@@ -11,9 +11,11 @@ import com.fixnow.dto.BookingResponse;
 import com.fixnow.entity.Booking;
 import com.fixnow.entity.BookingStatus;
 import com.fixnow.entity.Role;
+import com.fixnow.entity.Store;
 import com.fixnow.entity.User;
-import com.fixnow.repository.BookingRepository;
+import com.fixnow.repository.StoreRepository;
 import com.fixnow.repository.UserRepository;
+import com.fixnow.repository.BookingRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +30,7 @@ public class BookingService {
 	private final BookingRepository bookingRepository;
 	private final UserRepository userRepository;
 	private final ServiceService serviceService;
+	private final StoreRepository storeRepository;
 
 	@Transactional
 	public BookingResponse createBooking(String customerEmail, BookingCreateRequest req) {
@@ -44,6 +47,14 @@ public class BookingService {
 				.imageUrl(req.getImageUrl())
 				.status(BookingStatus.PENDING)
 				.build();
+
+		if (req.getStoreCode() == null || req.getStoreCode().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Store code is required");
+		}
+		
+		Store store = storeRepository.findByStoreCode(req.getStoreCode().toUpperCase())
+				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Store not found with code: " + req.getStoreCode()));
+		booking.setStore(store);
 
 		booking = bookingRepository.save(booking);
 		return toResponse(booking);
@@ -65,6 +76,12 @@ public class BookingService {
 		if (booking.getStatus() != BookingStatus.PENDING) {
 			throw new ResponseStatusException(BAD_REQUEST, "Only PENDING booking can be accepted");
 		}
+
+		// Security: Technician can only accept bookings from their store
+		if (booking.getStore() == null || tech.getStore() == null || !booking.getStore().getId().equals(tech.getStore().getId())) {
+			throw new ResponseStatusException(FORBIDDEN, "Booking does not belong to your store");
+		}
+
 		booking.setTechnician(tech);
 		booking.setStatus(BookingStatus.ACCEPTED);
 		return toResponse(bookingRepository.save(booking));
@@ -86,6 +103,12 @@ public class BookingService {
 			// Allow technician to cancel ANY PENDING job (rejecting it for everyone)
 			if (status == BookingStatus.CANCELLED && booking.getStatus() == BookingStatus.PENDING) {
 				System.out.println("[DEBUG] Technician cancelling PENDING job.");
+				
+				// Security: Technician can only cancel PENDING bookings from their store
+				if (booking.getStore() == null || actor.getStore() == null || !booking.getStore().getId().equals(actor.getStore().getId())) {
+					throw new ResponseStatusException(FORBIDDEN, "Booking does not belong to your store");
+				}
+
 				booking.setStatus(BookingStatus.CANCELLED);
 				return toResponse(bookingRepository.save(booking));
 			}
@@ -120,13 +143,27 @@ public class BookingService {
 			return bookingRepository.findByCustomerId(u.getId()).stream().map(this::toResponse).toList();
 		}
 		if (u.getRole() == Role.TECHNICIAN) {
-			return bookingRepository.findByTechnicianId(u.getId()).stream().map(this::toResponse).toList();
+			if (u.getStore() == null) {
+				return List.of();
+			}
+			// For technician, only show bookings assigned to them OR pending bookings in their store
+			List<Booking> list = new java.util.ArrayList<>(bookingRepository.findByTechnicianId(u.getId()));
+			list.addAll(bookingRepository.findByStoreIdAndStatus(u.getStore().getId(), BookingStatus.PENDING));
+			return list.stream().distinct().map(this::toResponse).toList();
 		}
 		return bookingRepository.findAll().stream().map(this::toResponse).toList();
 	}
 
-	public List<BookingResponse> getAllAvailableBookings() {
-		return bookingRepository.findByStatus(BookingStatus.PENDING).stream().map(this::toResponse).toList();
+	public List<BookingResponse> getAllAvailableBookings(String technicianEmail) {
+		User tech = userRepository.findByEmail(technicianEmail.toLowerCase())
+				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Technician not found"));
+
+		if (tech.getStore() == null) {
+			return List.of();
+		}
+
+		return bookingRepository.findByStoreIdAndStatus(tech.getStore().getId(), BookingStatus.PENDING)
+				.stream().map(this::toResponse).toList();
 	}
 
 	public Booking getByIdOrThrow(Long id) {
@@ -144,6 +181,7 @@ public class BookingService {
 				.imageUrl(b.getImageUrl())
 				.status(b.getStatus())
 				.createdAt(b.getCreatedAt())
+				.storeCode(b.getStore() != null ? b.getStore().getStoreCode() : null)
 				.build();
 	}
 }

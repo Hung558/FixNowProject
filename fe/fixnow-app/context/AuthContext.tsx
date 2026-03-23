@@ -8,6 +8,7 @@ interface User {
   email: string;
   phoneNumber?: string;
   role: 'CUSTOMER' | 'TECHNICIAN' | 'ADMIN';
+  storeCode?: string;
 }
 
 interface AuthContextType {
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem('userData');
       setToken(null);
       setUser(null);
-      router.replace('/login');
+      router.replace('/');
     } catch (e) {
       console.error('Logout failed', e);
     }

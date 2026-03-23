@@ -34,8 +34,8 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       const response = await api.post("/auth/register", { name, email, password, role });
-      const { token, userId, name: userName, email: userEmail, role: userRole } = response.data;
-      await login({ id: userId, name: userName, email: userEmail, role: userRole }, token);
+      const { token, userId, name: userName, email: userEmail, role: userRole, storeCode } = response.data;
+      await login({ id: userId, name: userName, email: userEmail, role: userRole, storeCode }, token);
     } catch (error: any) {
       const message = error.response?.data?.message || "Registration failed. Please try again.";
       Alert.alert("Registration Failed", message);
