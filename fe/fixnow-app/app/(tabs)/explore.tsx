@@ -85,6 +85,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  confirmModalContent: { backgroundColor: "#fff", borderRadius: 32, padding: 32, alignItems: "center", width: "100%", maxWidth: 380 },
+  warningIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#fef2f2", justifyContent: "center", alignItems: "center", marginBottom: 24, borderWidth: 1, borderColor: "#fee2e2" },
+  confirmTitle: { fontSize: 22, fontWeight: "800", color: "#1e293b", marginBottom: 12, textAlign: "center" },
+  confirmMessage: { fontSize: 16, color: "#64748b", textAlign: "center", marginBottom: 32, lineHeight: 22 },
+  confirmActionContainer: { flexDirection: "row", gap: 12, width: "100%" },
+  cancelButton: { flex: 1, backgroundColor: "#f1f5f9", paddingVertical: 14, borderRadius: 16, alignItems: "center" },
+  cancelButtonText: { color: "#64748b", fontWeight: "700", fontSize: 16 },
+  confirmRejectButton: { flex: 1, backgroundColor: "#ef4444", paddingVertical: 14, borderRadius: 16, alignItems: "center", elevation: 4, shadowColor: "#ef4444", shadowOpacity: 0.2, shadowRadius: 8 },
+  confirmRejectButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });
 
 interface Booking {
@@ -104,9 +113,12 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"MY_JOBS" | "AVAILABLE">("MY_JOBS");
   const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [processingIds, setProcessingIds] = useState<Record<number, boolean>>({});
 
   const fetchData = useCallback(async () => {
+    if (!user) return; // Don't fetch if logged out
     try {
       const myRes = await api.get("/bookings/me");
       setMyBookings(myRes.data);
@@ -124,7 +136,7 @@ export default function ExploreScreen() {
   }, [user]);
 
   useEffect(() => {
-    fetchData();
+    if (user) fetchData();
   }, [fetchData]);
 
   const onRefresh = () => {
@@ -150,7 +162,16 @@ export default function ExploreScreen() {
     }
   };
 
-  const handleRejectJob = async (id: number) => {
+  const handleRejectJob = (id: number) => {
+    setSelectedBookingId(id);
+    setShowConfirmModal(true);
+  };
+
+  const confirmRejectAction = async () => {
+    if (!selectedBookingId) return;
+    const id = selectedBookingId;
+    setShowConfirmModal(false);
+    
     if (processingIds[id]) return;
     setProcessingIds(prev => ({ ...prev, [id]: true }));
     try {
@@ -169,8 +190,10 @@ export default function ExploreScreen() {
       }
     } finally {
       setProcessingIds(prev => ({ ...prev, [id]: false }));
+      setSelectedBookingId(null);
     }
   };
+
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -317,6 +340,39 @@ export default function ExploreScreen() {
             >
               <Text style={styles.modalButtonText}>Xem đơn ngay</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <View style={styles.warningIconContainer}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#ef4444" />
+            </View>
+            <Text style={styles.confirmTitle}>Xác nhận hủy đơn</Text>
+            <Text style={styles.confirmMessage}>Bạn có chắc chắn muốn hủy đơn này không? Hành động này không thể hoàn tác.</Text>
+            
+            <View style={styles.confirmActionContainer}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setShowConfirmModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Quay lại</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.confirmRejectButton}
+                onPress={confirmRejectAction}
+              >
+                <Text style={styles.confirmRejectButtonText}>Hủy đơn ngay</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

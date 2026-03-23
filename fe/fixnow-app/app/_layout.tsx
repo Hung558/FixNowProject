@@ -10,9 +10,27 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+import { useSegments, router } from 'expo-router';
+import React, { useEffect } from 'react';
+
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
   const colorScheme = useColorScheme();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(tabs)' || segments[0] === 'create-order' || segments[0] === 'order-detail';
+    
+    if (!user && inAuthGroup) {
+      // If we're not logged in, but we're in a protected group, go to login
+      router.replace('/login');
+    } else if (user && !inAuthGroup && segments[0] !== 'modal') {
+      // If we ARE logged in, and we're on the welcome screen or login/register, go to tabs
+      router.replace('/(tabs)');
+    }
+  }, [user, isLoading, segments]);
 
   if (isLoading) {
     return null; // Or a splash screen
