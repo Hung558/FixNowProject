@@ -71,12 +71,16 @@ export default function TabLayout() {
         name="create-order"
         options={{
           href: null,
+          headerShown: true,
+          title: "Đặt lịch",
         }}
       />
       <Tabs.Screen
         name="order-detail"
         options={{
           href: null,
+          headerShown: true,
+          title: "Chi tiết",
         }}
       />
     </Tabs>
