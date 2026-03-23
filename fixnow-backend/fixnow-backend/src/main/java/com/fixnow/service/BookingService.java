@@ -34,18 +34,15 @@ public class BookingService {
 
 	@Transactional
 	public BookingResponse createBooking(String customerEmail, BookingCreateRequest req) {
-		System.out.println("[CREATE] START - email=" + customerEmail + ", serviceId=" + req.getServiceId() + ", storeCode=" + req.getStoreCode());
 		
 		User customer = userRepository.findByEmail(customerEmail.toLowerCase())
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Customer not found"));
-		System.out.println("[CREATE] User found: " + customer.getEmail() + " role=" + customer.getRole());
 		
 		if (customer.getRole() != Role.CUSTOMER) {
 			throw new ResponseStatusException(FORBIDDEN, "Only CUSTOMER can create booking");
 		}
 
 		com.fixnow.entity.Service svc = serviceService.getByIdOrThrow(req.getServiceId());
-		System.out.println("[CREATE] Service found: id=" + svc.getId() + " name=" + svc.getName());
 
 		Booking booking = Booking.builder()
 				.customer(customer)
@@ -61,12 +58,9 @@ public class BookingService {
 		
 		Store store = storeRepository.findByStoreCode(req.getStoreCode().toUpperCase())
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Store not found with code: " + req.getStoreCode()));
-		System.out.println("[CREATE] Store found: id=" + store.getId() + " code=" + store.getStoreCode());
 		booking.setStore(store);
 
-		System.out.println("[CREATE] Saving booking...");
 		booking = bookingRepository.save(booking);
-		System.out.println("[CREATE] SUCCESS! Booking ID=" + booking.getId());
 		return toResponse(booking);
 	}
 
@@ -105,10 +99,6 @@ public class BookingService {
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
 		Booking booking = bookingRepository.findById(bookingId)
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Booking not found"));
-
-		System.out.println("[DEBUG] updateStatus - Actor: " + actor.getEmail() + " (" + actor.getRole() + ")");
-		System.out.println("[DEBUG] Booking: " + booking.getId() + " Status: " + booking.getStatus());
-		System.out.println("[DEBUG] Target Status: " + status);
 
 		// Technician logic
 		if (actor.getRole() == Role.TECHNICIAN) {
