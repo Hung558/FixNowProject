@@ -59,11 +59,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userData');
+      // Clear React state first to trigger UI guards immediately
       setToken(null);
       setUser(null);
-      router.replace('/');
+      
+      // Then clear storage
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
+      
+      // Navigation is now handled by the RootLayout guard
     } catch (e) {
       console.error('Logout failed', e);
     }

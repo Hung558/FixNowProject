@@ -7,9 +7,13 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuth } from '@/context/AuthContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { user } = useAuth();
+
+  if (!user) return null;
 
   return (
     <Tabs

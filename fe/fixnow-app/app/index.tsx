@@ -8,13 +8,10 @@ import { useAuth } from "@/context/AuthContext";
 export default function WelcomeScreen() {
   const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (!isLoading && user) {
-      router.replace("/(tabs)");
-    }
-  }, [user, isLoading]);
+  if (isLoading) return null;
 
-  if (isLoading || user) return null;
+  if (user) return null; // Still good to keep this as a secondary safety to avoid flash of content
+
 
   return (
     <LinearGradient colors={["#0f172a", "#1e293b"]} style={styles.container}>
