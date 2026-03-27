@@ -32,5 +32,12 @@ public class ReviewController {
 			@Valid @RequestBody ReviewCreateRequest req) {
 		return ResponseEntity.ok(reviewService.addReview(user.getUsername(), req));
 	}
+
+	@org.springframework.web.bind.annotation.GetMapping("/booking/{bookingId}")
+	public ResponseEntity<ReviewResponse> getByBooking(@org.springframework.web.bind.annotation.PathVariable Long bookingId) {
+		return reviewService.getReviewByBooking(bookingId)
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.noContent().build());
+	}
 }
 

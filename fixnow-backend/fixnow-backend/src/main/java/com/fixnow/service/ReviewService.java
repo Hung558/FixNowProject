@@ -65,5 +65,9 @@ public class ReviewService {
 				.comment(r.getComment())
 				.build();
 	}
+
+	public java.util.Optional<ReviewResponse> getReviewByBooking(Long bookingId) {
+		return reviewRepository.findByBookingId(bookingId).map(this::toResponse);
+	}
 }
 
