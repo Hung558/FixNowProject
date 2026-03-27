@@ -219,7 +219,7 @@ export default function OrderDetailScreen() {
           </View>
         )}
 
-        {user?.role === "CUSTOMER" && booking.status === "COMPLETED" && (
+        {booking.status === "COMPLETED" && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Đánh giá dịch vụ</Text>
             {existingReview ? (
@@ -238,7 +238,7 @@ export default function OrderDetailScreen() {
                   <Text style={styles.existingComment}>"{existingReview.comment}"</Text>
                 ) : null}
               </View>
-            ) : (
+            ) : user?.role === "CUSTOMER" ? (
               <>
                 <View style={styles.ratingRow}>
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -266,6 +266,10 @@ export default function OrderDetailScreen() {
                   <Text style={styles.submitButtonText}>Gửi đánh giá</Text>
                 </TouchableOpacity>
               </>
+            ) : (
+              <Text style={{ color: "#64748b", fontStyle: "italic", marginTop: 8 }}>
+                Khách hàng chưa gửi đánh giá cho đơn hàng này.
+              </Text>
             )}
           </View>
         )}
