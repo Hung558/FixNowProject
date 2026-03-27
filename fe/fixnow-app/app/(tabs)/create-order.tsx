@@ -11,12 +11,14 @@ import {
   Platform,
   ScrollView,
   Modal,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import api from "@/services/api";
-import { createBooking } from "@/services/booking.service";
+import { createBooking, uploadImage } from "@/services/booking.service";
 import { getStoreByCode } from "@/services/store.service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -42,6 +44,18 @@ export default function CreateOrderScreen() {
     setImageUrl("");
     loadStoreHistory();
   }, [serviceId]);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'] as any,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUrl(result.assets[0].uri);
+    }
+  };
 
   const loadStoreHistory = async () => {
     const history = await AsyncStorage.getItem("storeHistory");
@@ -96,10 +110,18 @@ Loại: ${deviceType}
 Yêu cầu/Lỗi: ${detail}
       `.trim();
 
+      let finalImageUrl = "";
+      if (imageUrl && !imageUrl.startsWith('http')) {
+        // Upload the selected image
+        finalImageUrl = await uploadImage(imageUrl);
+      } else {
+        finalImageUrl = imageUrl;
+      }
+
       await createBooking({
         serviceId: Number(serviceId),
         description: combinedDescription,
-        imageUrl,
+        imageUrl: finalImageUrl,
         storeCode: storeInfo.storeCode
       });
 
@@ -204,17 +226,20 @@ Yêu cầu/Lỗi: ${detail}
             />
           </View>
 
-          <Text style={styles.inputLabel}>Hình ảnh minh họa (Link)</Text>
-          <View style={styles.inputContainer}>
-            <MaterialCommunityIcons name="image-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Dán link hình ảnh tình trạng máy"
-              placeholderTextColor="#94a3b8"
-              value={imageUrl}
-              onChangeText={setImageUrl}
-            />
-          </View>
+          <Text style={styles.inputLabel}>Hình ảnh minh họa</Text>
+          {!imageUrl ? (
+            <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+              <MaterialCommunityIcons name="camera-plus" size={24} color="#0ea5e9" />
+              <Text style={styles.imagePickerText}>Chọn ảnh từ thiết bị</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+              <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUrl("")}>
+                <MaterialCommunityIcons name="close" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
 
           <Text style={styles.inputLabel}>Mã cửa hàng (Store Code) - Bắt buộc</Text>
           <View style={styles.inputContainer}>
@@ -417,6 +442,46 @@ const styles = StyleSheet.create({
     height: 120,
     color: "#1e293b",
     fontSize: 16,
+  },
+  imagePickerButton: {
+    backgroundColor: "#f0f9ff",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#38bdf8",
+    borderRadius: 12,
+    height: 100,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  imagePickerText: {
+    color: "#0ea5e9",
+    marginTop: 8,
+    fontWeight: "600",
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    marginBottom: 24,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  imagePreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: "#f1f5f9",
+    resizeMode: "cover",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
   inputContainer: {
     flexDirection: "row",
