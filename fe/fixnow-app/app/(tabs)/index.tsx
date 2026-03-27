@@ -28,6 +28,7 @@ interface ServiceItem {
 export default function HomeScreen() {
   const { user, logout } = useAuth();
   const [services, setServices] = useState<ServiceItem[]>([]);
+  const [stats, setStats] = useState({ jobsDone: 0, averageRating: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -43,9 +44,23 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchTechStats = async () => {
+    try {
+      const response = await api.get("/users/me/stats");
+      setStats(response.data);
+    } catch (error) {
+      console.error("Failed to fetch tech stats", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.role === "CUSTOMER") {
       fetchServices();
+    } else if (user?.role === "TECHNICIAN") {
+      fetchTechStats();
     } else {
       setLoading(false);
     }
@@ -55,6 +70,8 @@ export default function HomeScreen() {
     setRefreshing(true);
     if (user?.role === "CUSTOMER") {
       fetchServices();
+    } else if (user?.role === "TECHNICIAN") {
+      fetchTechStats();
     } else {
       setRefreshing(false);
     }
@@ -125,11 +142,11 @@ export default function HomeScreen() {
             
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>--</Text>
+                <Text style={styles.statValue}>{stats.jobsDone}</Text>
                 <Text style={styles.statLabel}>Jobs Done</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>--</Text>
+                <Text style={styles.statValue}>{stats.averageRating ? stats.averageRating.toFixed(1) : "0.0"}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
               </View>
             </View>

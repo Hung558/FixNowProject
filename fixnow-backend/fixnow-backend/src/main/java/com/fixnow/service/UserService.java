@@ -14,9 +14,13 @@ import com.fixnow.dto.AuthResponse;
 import com.fixnow.dto.LoginRequest;
 import com.fixnow.dto.RegisterRequest;
 import com.fixnow.dto.UserResponse;
+import com.fixnow.dto.TechStatsResponse;
+import com.fixnow.entity.BookingStatus;
 import com.fixnow.entity.Role;
 import com.fixnow.entity.Store;
 import com.fixnow.entity.User;
+import com.fixnow.repository.BookingRepository;
+import com.fixnow.repository.ReviewRepository;
 import com.fixnow.repository.UserRepository;
 import com.fixnow.security.JwtUtil;
 
@@ -30,9 +34,21 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class UserService {
 
 	private final UserRepository userRepository;
+	private final BookingRepository bookingRepository;
+	private final ReviewRepository reviewRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final AuthenticationManager authenticationManager;
 	private final JwtUtil jwtUtil;
+
+	public TechStatsResponse getTechStats(String email) {
+		Long jobsDone = bookingRepository.countByTechnicianEmailAndStatus(email.toLowerCase(), BookingStatus.COMPLETED);
+		Double avgRating = reviewRepository.getAverageRatingByTechnicianEmail(email.toLowerCase());
+		if (avgRating == null) avgRating = 0.0;
+		return TechStatsResponse.builder()
+				.jobsDone(jobsDone)
+				.averageRating(avgRating)
+				.build();
+	}
 
 	public AuthResponse register(RegisterRequest req) {
 		if (userRepository.existsByEmail(req.getEmail())) {

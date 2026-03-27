@@ -42,6 +42,7 @@ export default function OrderDetailScreen() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [existingReview, setExistingReview] = useState<any>(null);
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -56,6 +57,15 @@ export default function OrderDetailScreen() {
           const foundAvail = avail.data.find((b: any) => b.id === Number(id));
           setBooking(foundAvail || null);
         }
+      }
+
+      try {
+        const reviewRes = await api.get(`/reviews/booking/${id}`);
+        if (reviewRes.data) {
+          setExistingReview(reviewRes.data);
+        }
+      } catch (e) {
+        // Ignored
       }
     } catch (error) {
       console.error(error);
@@ -215,31 +225,51 @@ export default function OrderDetailScreen() {
         {user?.role === "CUSTOMER" && booking.status === "COMPLETED" && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Đánh giá dịch vụ</Text>
-            <View style={styles.ratingRow}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <TouchableOpacity key={s} onPress={() => setRating(s)}>
-                  <MaterialCommunityIcons 
-                    name={s <= rating ? "star" : "star-outline"} 
-                    size={32} 
-                    color="#eab308" 
-                  />
+            {existingReview ? (
+              <View style={styles.existingReviewBox}>
+                <View style={styles.ratingRowStatus}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <MaterialCommunityIcons 
+                      key={s}
+                      name={s <= existingReview.rating ? "star" : "star-outline"} 
+                      size={24} 
+                      color="#eab308" 
+                    />
+                  ))}
+                </View>
+                {existingReview.comment ? (
+                  <Text style={styles.existingComment}>"{existingReview.comment}"</Text>
+                ) : null}
+              </View>
+            ) : (
+              <>
+                <View style={styles.ratingRow}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <TouchableOpacity key={s} onPress={() => setRating(s)}>
+                      <MaterialCommunityIcons 
+                        name={s <= rating ? "star" : "star-outline"} 
+                        size={32} 
+                        color="#eab308" 
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.reviewInput}
+                  placeholder="Chia sẻ trải nghiệm của bạn..."
+                  multiline
+                  value={comment}
+                  onChangeText={setComment}
+                />
+                <TouchableOpacity 
+                  style={[styles.submitButton, submittingReview && { opacity: 0.6 }]} 
+                  onPress={submitReview}
+                  disabled={submittingReview}
+                >
+                  <Text style={styles.submitButtonText}>Gửi đánh giá</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-            <TextInput
-              style={styles.reviewInput}
-              placeholder="Chia sẻ trải nghiệm của bạn..."
-              multiline
-              value={comment}
-              onChangeText={setComment}
-            />
-            <TouchableOpacity 
-              style={[styles.submitButton, submittingReview && { opacity: 0.6 }]} 
-              onPress={submitReview}
-              disabled={submittingReview}
-            >
-              <Text style={styles.submitButtonText}>Gửi đánh giá</Text>
-            </TouchableOpacity>
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -298,7 +328,10 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0" 
   },
   actionButtonText: { fontSize: 13, fontWeight: "700" },
+  ratingRowStatus: { flexDirection: "row", justifyContent: "flex-start", gap: 4, marginBottom: 16 },
   ratingRow: { flexDirection: "row", justifyContent: "center", gap: 12, marginBottom: 20 },
+  existingReviewBox: { backgroundColor: "#f0fdf4", padding: 16, borderRadius: 16, borderWidth: 1, borderColor: "#bbf7d0" },
+  existingComment: { fontSize: 16, color: "#166534", fontStyle: "italic", lineHeight: 24 },
   reviewInput: { backgroundColor: "#f8fafc", borderRadius: 16, padding: 16, height: 120, textAlignVertical: "top", marginBottom: 16, borderWidth: 1, borderColor: "#f1f5f9" },
   submitButton: { backgroundColor: "#0ea5e9", height: 56, borderRadius: 16, justifyContent: "center", alignItems: "center" },
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
