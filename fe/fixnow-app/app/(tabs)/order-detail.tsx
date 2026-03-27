@@ -37,6 +37,7 @@ export default function OrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showReviewSuccessModal, setShowReviewSuccessModal] = useState(false);
   
   // Review state
   const [rating, setRating] = useState(5);
@@ -130,11 +131,7 @@ export default function OrderDetailScreen() {
         rating,
         comment,
       });
-      if (Platform.OS === 'web') {
-        alert("Thành công: Cảm ơn bạn đã đánh giá!");
-      } else {
-        Alert.alert("Thành công", "Cảm ơn bạn đã đánh giá!");
-      }
+      setShowReviewSuccessModal(true);
       fetchDetail();
     } catch (error: any) {
       console.error("Review error:", error);
@@ -157,7 +154,7 @@ export default function OrderDetailScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient colors={["#38bdf8", "#0ea5e9"]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push("/(tabs)/explore")} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
@@ -290,6 +287,29 @@ export default function OrderDetailScreen() {
             <TouchableOpacity 
               style={styles.modalButton}
               onPress={() => setShowUpdateModal(false)}
+            >
+              <Text style={styles.modalButtonText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showReviewSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReviewSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.successIconContainer, { backgroundColor: "#eab308", shadowColor: "#eab308" }]}>
+              <MaterialCommunityIcons name="star-circle" size={40} color="#fff" />
+            </View>
+            <Text style={styles.successTitle}>Đánh giá thành công!</Text>
+            <Text style={styles.successMessage}>Cảm ơn bạn đã chia sẻ trải nghiệm dịch vụ. Đánh giá của bạn giúp FixNow ngày càng tốt hơn!</Text>
+            <TouchableOpacity 
+              style={[styles.modalButton, { backgroundColor: "#0ea5e9" }]}
+              onPress={() => setShowReviewSuccessModal(false)}
             >
               <Text style={styles.modalButtonText}>Đóng</Text>
             </TouchableOpacity>
