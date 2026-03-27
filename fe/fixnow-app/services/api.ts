@@ -1,12 +1,17 @@
 import { Platform } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 // Change this to your Railway/Production URL after deploying
 const PRODUCTION_API_URL = 'https://fixnowproject-production.up.railway.app/api';
 
+// Retrieve the dynamic LAN IP from Expo (e.g., 192.168.x.x)
+const hostUri = Constants.expoConfig?.hostUri;
+const localIp = hostUri ? hostUri.split(':')[0] : '192.168.0.102';
+
 const BASE_URL = __DEV__ 
-  ? (Platform.OS === 'web' ? 'http://localhost:8080/api' : 'http://192.168.0.102:8080/api')
+  ? (Platform.OS === 'web' ? 'http://localhost:8080/api' : `http://${localIp}:8080/api`)
   : PRODUCTION_API_URL;
 
 const api = axios.create({
