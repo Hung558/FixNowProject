@@ -64,7 +64,12 @@ export default function LoginScreen() {
       const { token, userId, name, email: userEmail, role, storeCode } = response.data;
       await login({ id: userId, name, email: userEmail, role, storeCode }, token);
     } catch (err: any) {
-      const message = err.response?.data?.message || "Invalid credentials. Please try again.";
+      let message = "Invalid credentials. Please try again.";
+      if (err.message === "Network Error") {
+        message = "Lỗi kết nối. Vui lòng đảm bảo điện thoại và máy tính cùng chung 1 mạng Wi-Fi, và Backend đang chạy.";
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      }
       showErrorMessage(message);
     } finally {
       setLoading(false);
