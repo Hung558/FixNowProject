@@ -100,24 +100,50 @@ export default function CreateOrderScreen() {
     try {
       const formattedCode = storeCode.trim().toUpperCase();
       
-      // Fetch store details to secure its existence and retrieve name concurrently
-      const storeInfo = await getStoreByCode(formattedCode);
+      // 1. Validate store code first
+      let storeInfo;
+      try {
+        storeInfo = await getStoreByCode(formattedCode);
+      } catch (storeError: any) {
+        const status = storeError.response?.status;
+        if (status === 404) {
+          setErrorMessage("Mã cửa hàng không tồn tại. Vui lòng kiểm tra lại mã!");
+        } else {
+          setErrorMessage("Không thể kết nối tới server. Vui lòng kiểm tra mạng.");
+        }
+        setShowErrorModal(true);
+        setLoading(false);
+        return;
+      }
 
-      // Combine info into description for the backend
+      // 2. Combine description
       const combinedDescription = `
 Máy: ${deviceName}
 Loại: ${deviceType}
 Yêu cầu/Lỗi: ${detail}
       `.trim();
 
+      // 3. Upload image if selected
       let finalImageUrl = "";
       if (imageUrl && !imageUrl.startsWith('http')) {
-        // Upload the selected image
-        finalImageUrl = await uploadImage(imageUrl);
+        try {
+          finalImageUrl = await uploadImage(imageUrl);
+        } catch (uploadError: any) {
+          const errMsg = uploadError.message || "";
+          if (errMsg.includes("413") || errMsg.toLowerCase().includes("size")) {
+            setErrorMessage("Ảnh quá lớn! Vui lòng chọn ảnh dưới 10MB.");
+          } else {
+            setErrorMessage("Không thể tải ảnh lên. Vui lòng thử lại hoặc bỏ ảnh.");
+          }
+          setShowErrorModal(true);
+          setLoading(false);
+          return;
+        }
       } else {
         finalImageUrl = imageUrl;
       }
 
+      // 4. Create booking
       await createBooking({
         serviceId: Number(serviceId),
         description: combinedDescription,
@@ -136,8 +162,8 @@ Yêu cầu/Lỗi: ${detail}
     } catch (error: any) {
       console.error("Create booking error:", error.response?.status, error.response?.data);
       const data = error.response?.data;
-      const errorMsg = data?.message || data?.error || data?.detail || "Mã cửa hàng không tồn tại hoặc có lỗi xảy ra.";
-      setErrorMessage(`Lỗi (${error.response?.status || '?'}): ${errorMsg}`);
+      const errorMsg = data?.message || data?.error || data?.detail || "Có lỗi xảy ra khi tạo đơn. Vui lòng thử lại.";
+      setErrorMessage(errorMsg);
       setShowErrorModal(true);
     } finally {
       setLoading(false);
