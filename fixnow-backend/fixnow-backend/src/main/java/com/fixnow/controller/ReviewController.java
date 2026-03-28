@@ -34,7 +34,7 @@ public class ReviewController {
 	}
 
 	@org.springframework.web.bind.annotation.GetMapping("/booking/{bookingId}")
-	public ResponseEntity<ReviewResponse> getByBooking(@org.springframework.web.bind.annotation.PathVariable Long bookingId) {
+	public ResponseEntity<ReviewResponse> getByBooking(@org.springframework.web.bind.annotation.PathVariable("bookingId") Long bookingId) {
 		return reviewService.getReviewByBooking(bookingId)
 				.map(ResponseEntity::ok)
 				.orElse(ResponseEntity.noContent().build());

@@ -94,7 +94,7 @@ public class BookingService {
 	}
 
 	@Transactional
-	public BookingResponse updateStatus(String actorEmail, Long bookingId, BookingStatus status) {
+	public BookingResponse updateStatus(String actorEmail, Long bookingId, BookingStatus status, Double finalPrice) {
 		User actor = userRepository.findByEmail(actorEmail.toLowerCase())
 				.orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
 		Booking booking = bookingRepository.findById(bookingId)
@@ -132,8 +132,35 @@ public class BookingService {
 			if (!booking.getTechnician().getId().equals(actor.getId())) {
 				throw new ResponseStatusException(FORBIDDEN, "You are not assigned to this booking");
 			}
+			
+			// Technician requesting payment
+			if (status == BookingStatus.PAYMENT_PENDING) {
+				if (finalPrice == null || finalPrice <= 0) {
+					throw new ResponseStatusException(BAD_REQUEST, "Final price is required to move to PAYMENT_PENDING");
+				}
+				if (booking.getStatus() != BookingStatus.IN_PROGRESS && booking.getStatus() != BookingStatus.ACCEPTED) {
+					throw new ResponseStatusException(BAD_REQUEST, "Booking must be IN_PROGRESS before requesting payment");
+				}
+				booking.setFinalPrice(finalPrice);
+			}
+			
 			booking.setStatus(status);
 			return toResponse(bookingRepository.save(booking));
+		}
+
+		// Customer logic
+		if (actor.getRole() == Role.CUSTOMER) {
+			if (status == BookingStatus.COMPLETED) {
+			    if (booking.getStatus() != BookingStatus.PAYMENT_PENDING) {
+					throw new ResponseStatusException(BAD_REQUEST, "Booking must be PAYMENT_PENDING before completion");
+				}
+				if (!booking.getCustomer().getId().equals(actor.getId())) {
+					throw new ResponseStatusException(FORBIDDEN, "This booking does not belong to you");
+				}
+				booking.setStatus(BookingStatus.COMPLETED);
+				return toResponse(bookingRepository.save(booking));
+			}
+			throw new ResponseStatusException(FORBIDDEN, "Customers can only update status to COMPLETED after payment");
 		}
 
 		// Admin can update anything
@@ -192,6 +219,7 @@ public class BookingService {
 				.status(b.getStatus())
 				.createdAt(b.getCreatedAt())
 				.storeCode(b.getStore() != null ? b.getStore().getStoreCode() : null)
+				.finalPrice(b.getFinalPrice())
 				.build();
 	}
 }

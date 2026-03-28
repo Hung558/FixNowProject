@@ -52,7 +52,7 @@ public class BookingController {
 			@AuthenticationPrincipal UserDetails user,
 			@PathVariable("id") Long id,
 			@Valid @RequestBody BookingStatusUpdateRequest req) {
-		return ResponseEntity.ok(bookingService.updateStatus(user.getUsername(), id, req.getStatus()));
+		return ResponseEntity.ok(bookingService.updateStatus(user.getUsername(), id, req.getStatus(), req.getFinalPrice()));
 	}
 
 	@GetMapping("/me")

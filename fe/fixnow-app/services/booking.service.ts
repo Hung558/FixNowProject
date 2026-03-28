@@ -12,6 +12,7 @@ export interface Booking {
   status: string;
   createdAt: string;
   storeCode?: string;
+  finalPrice?: number;
 }
 
 export interface BookingCreateRequest {
@@ -41,8 +42,8 @@ export const acceptBooking = async (id: number): Promise<Booking> => {
   return response.data;
 };
 
-export const updateBookingStatus = async (id: number, status: string): Promise<Booking> => {
-  const response = await api.put<Booking>(`/bookings/${id}/status`, { status });
+export const updateBookingStatus = async (id: number, status: string, finalPrice?: number): Promise<Booking> => {
+  const response = await api.put<Booking>(`/bookings/${id}/status`, { status, finalPrice });
   return response.data;
 };
 

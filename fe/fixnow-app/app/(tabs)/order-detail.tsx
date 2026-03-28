@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   Modal,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,6 +29,7 @@ interface BookingDetail {
   serviceId: number;
   customerId: number;
   technicianId?: number;
+  finalPrice?: number;
 }
 
 export default function OrderDetailScreen() {
@@ -44,6 +46,13 @@ export default function OrderDetailScreen() {
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [existingReview, setExistingReview] = useState<any>(null);
+
+  // Payment state
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
+  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [paymentProgress] = useState(new Animated.Value(0));
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -85,9 +94,9 @@ export default function OrderDetailScreen() {
     fetchDetail();
   }, [fetchDetail]);
 
-  const updateStatus = async (newStatus: string) => {
+  const updateStatus = async (newStatus: string, finalPrice?: number) => {
     try {
-      await api.put(`/bookings/${id}/status`, { status: newStatus });
+      await api.put(`/bookings/${id}/status`, { status: newStatus, finalPrice });
       setShowUpdateModal(true);
       fetchDetail();
     } catch (error: any) {
@@ -104,11 +113,52 @@ export default function OrderDetailScreen() {
     }
   };
 
+  const handleRequestPayment = () => {
+    const price = parseFloat(priceInput.replace(/,/g, ''));
+    if (!price || price <= 0) {
+      if (Platform.OS === 'web') {
+        alert("Vui lòng nhập số tiền hợp lệ");
+      } else {
+        Alert.alert("Lỗi", "Vui lòng nhập số tiền hợp lệ");
+      }
+      return;
+    }
+    setShowPriceModal(false);
+    setPriceInput("");
+    updateStatus("PAYMENT_PENDING", price);
+  };
+
+  const handleMockPayment = async () => {
+    setShowPaymentProcessing(true);
+    paymentProgress.setValue(0);
+    Animated.timing(paymentProgress, {
+      toValue: 1,
+      duration: 2500,
+      useNativeDriver: false,
+    }).start(async () => {
+      try {
+        await api.put(`/bookings/${id}/status`, { status: "COMPLETED" });
+        setShowPaymentProcessing(false);
+        setShowPaymentSuccess(true);
+        fetchDetail();
+      } catch (error: any) {
+        setShowPaymentProcessing(false);
+        const errorMsg = error.response?.data?.message || "Thanh toán thất bại.";
+        if (Platform.OS === 'web') {
+          alert("Lỗi: " + errorMsg);
+        } else {
+          Alert.alert("Lỗi", errorMsg);
+        }
+      }
+    });
+  };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "PENDING": return { text: "Chờ xác nhận", color: "#f59e0b" };
       case "ACCEPTED": return { text: "Đã nhận việc", color: "#38bdf8" };
       case "IN_PROGRESS": return { text: "Đang sửa chữa", color: "#0ea5e9" };
+      case "PAYMENT_PENDING": return { text: "Chờ thanh toán", color: "#8b5cf6" };
       case "COMPLETED": return { text: "Hoàn thành", color: "#10b981" };
       case "CANCELLED": return { text: "Đã hủy", color: "#ef4444" };
       default: return { text: status, color: "#94a3b8" };
@@ -188,34 +238,72 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {user?.role === "TECHNICIAN" && Number(booking.technicianId) === Number(user.id) && booking.status !== "COMPLETED" && booking.status !== "CANCELLED" && (
+        {user?.role === "TECHNICIAN" && Number(booking.technicianId) === Number(user.id) && booking.status !== "COMPLETED" && booking.status !== "CANCELLED" && booking.status !== "PAYMENT_PENDING" && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Cập nhật tiến độ</Text>
             <View style={styles.actionGrid}>
-              {[
-                { id: "IN_PROGRESS", label: "Đang sửa", icon: "hammer-wrench", color: "#0ea5e9" },
-                { id: "COMPLETED", label: "Xong việc", icon: "check-circle", color: "#10b981" }
-              ].map((s) => (
-                <TouchableOpacity 
-                  key={s.id} 
-                  style={[
-                    styles.actionButton, 
-                    booking.status === s.id && { backgroundColor: s.color, borderColor: s.color }
-                  ]}
-                  onPress={() => updateStatus(s.id)}
-                >
-                  <MaterialCommunityIcons 
-                    name={s.icon as any} 
-                    size={18} 
-                    color={booking.status === s.id ? "#fff" : s.color} 
-                    style={{ marginRight: 6 }} 
-                  />
-                  <Text style={[styles.actionButtonText, { color: s.color }, booking.status === s.id && { color: "#fff" }]}>
-                    {s.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              <TouchableOpacity 
+                style={[
+                  styles.actionButton, 
+                  booking.status === "IN_PROGRESS" && { backgroundColor: "#0ea5e9", borderColor: "#0ea5e9" }
+                ]}
+                onPress={() => updateStatus("IN_PROGRESS")}
+              >
+                <MaterialCommunityIcons 
+                  name="hammer-wrench" 
+                  size={18} 
+                  color={booking.status === "IN_PROGRESS" ? "#fff" : "#0ea5e9"} 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={[styles.actionButtonText, { color: "#0ea5e9" }, booking.status === "IN_PROGRESS" && { color: "#fff" }]}>
+                  Đang sửa
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, { borderColor: "#8b5cf6" }]}
+                onPress={() => setShowPriceModal(true)}
+              >
+                <MaterialCommunityIcons 
+                  name="cash-register" 
+                  size={18} 
+                  color="#8b5cf6" 
+                  style={{ marginRight: 6 }} 
+                />
+                <Text style={[styles.actionButtonText, { color: "#8b5cf6" }]}>
+                  Yêu cầu thanh toán
+                </Text>
+              </TouchableOpacity>
             </View>
+          </View>
+        )}
+
+        {/* Customer Payment Section */}
+        {user?.role === "CUSTOMER" && booking.status === "PAYMENT_PENDING" && (
+          <View style={styles.section}>
+            <View style={styles.invoiceHeader}>
+              <MaterialCommunityIcons name="receipt" size={28} color="#8b5cf6" />
+              <Text style={styles.invoiceTitle}>Hóa đơn thanh toán</Text>
+            </View>
+            <View style={styles.invoiceBox}>
+              <View style={styles.invoiceRow}>
+                <Text style={styles.invoiceLabel}>Phí dịch vụ sửa chữa</Text>
+                <Text style={styles.invoiceValue}>
+                  {(booking.finalPrice || 0).toLocaleString("vi-VN")}đ
+                </Text>
+              </View>
+              <View style={styles.invoiceDivider} />
+              <View style={styles.invoiceRow}>
+                <Text style={[styles.invoiceLabel, { fontWeight: "800", color: "#1e293b" }]}>Tổng cộng</Text>
+                <Text style={[styles.invoiceValue, { fontWeight: "800", fontSize: 20, color: "#8b5cf6" }]}>
+                  {(booking.finalPrice || 0).toLocaleString("vi-VN")}đ
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.payButton} onPress={handleMockPayment}>
+              <MaterialCommunityIcons name="wallet" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.payButtonText}>Thanh toán bằng Ví FixNow</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -320,6 +408,93 @@ export default function OrderDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Price Input Modal for Technician */}
+      <Modal
+        visible={showPriceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPriceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.successIconContainer, { backgroundColor: "#8b5cf6", shadowColor: "#8b5cf6" }]}>
+              <MaterialCommunityIcons name="cash-register" size={40} color="#fff" />
+            </View>
+            <Text style={styles.successTitle}>Nhập giá tiền hóa đơn</Text>
+            <Text style={[styles.successMessage, { marginBottom: 16 }]}>Nhập số tiền thực tế khách hàng cần thanh toán (VNĐ)</Text>
+            <TextInput
+              style={styles.priceInput}
+              placeholder="VD: 500000"
+              placeholderTextColor="#94a3b8"
+              keyboardType="numeric"
+              value={priceInput}
+              onChangeText={setPriceInput}
+            />
+            <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
+              <TouchableOpacity 
+                style={[styles.modalButton, { flex: 1, backgroundColor: "#e2e8f0" }]}
+                onPress={() => { setShowPriceModal(false); setPriceInput(""); }}
+              >
+                <Text style={[styles.modalButtonText, { color: "#64748b" }]}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, { flex: 1, backgroundColor: "#8b5cf6" }]}
+                onPress={handleRequestPayment}
+              >
+                <Text style={styles.modalButtonText}>Xác nhận</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Payment Processing Modal */}
+      <Modal
+        visible={showPaymentProcessing}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.successIconContainer, { backgroundColor: "#8b5cf6", shadowColor: "#8b5cf6" }]}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+            <Text style={styles.successTitle}>Đang xử lý thanh toán...</Text>
+            <Text style={[styles.successMessage, { marginBottom: 16 }]}>Vui lòng đợi trong giây lát</Text>
+            <View style={styles.progressBarBg}>
+              <Animated.View style={[
+                styles.progressBarFill,
+                { width: paymentProgress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }
+              ]} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Payment Success Modal */}
+      <Modal
+        visible={showPaymentSuccess}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPaymentSuccess(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.successIconContainer, { backgroundColor: "#10b981" }]}>
+              <MaterialCommunityIcons name="check-decagram" size={40} color="#fff" />
+            </View>
+            <Text style={styles.successTitle}>Thanh toán thành công!</Text>
+            <Text style={styles.successMessage}>Giao dịch {(booking?.finalPrice || 0).toLocaleString("vi-VN")}đ đã hoàn tất qua Ví FixNow. Cảm ơn bạn đã sử dụng dịch vụ!</Text>
+            <TouchableOpacity 
+              style={[styles.modalButton, { backgroundColor: "#10b981" }]}
+              onPress={() => setShowPaymentSuccess(false)}
+            >
+              <Text style={styles.modalButtonText}>Tuyệt vời!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -359,6 +534,18 @@ const styles = StyleSheet.create({
   reviewInput: { backgroundColor: "#f8fafc", borderRadius: 16, padding: 16, height: 120, textAlignVertical: "top", marginBottom: 16, borderWidth: 1, borderColor: "#f1f5f9" },
   submitButton: { backgroundColor: "#0ea5e9", height: 56, borderRadius: 16, justifyContent: "center", alignItems: "center" },
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  invoiceHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
+  invoiceTitle: { fontSize: 20, fontWeight: "800", color: "#1e293b" },
+  invoiceBox: { backgroundColor: "#faf5ff", borderRadius: 16, padding: 20, borderWidth: 1, borderColor: "#e9d5ff", marginBottom: 20 },
+  invoiceRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 8 },
+  invoiceLabel: { fontSize: 15, color: "#64748b" },
+  invoiceValue: { fontSize: 16, fontWeight: "700", color: "#1e293b" },
+  invoiceDivider: { height: 1, backgroundColor: "#e9d5ff", marginVertical: 8 },
+  payButton: { backgroundColor: "#8b5cf6", height: 56, borderRadius: 16, justifyContent: "center", alignItems: "center", flexDirection: "row", shadowColor: "#8b5cf6", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  payButtonText: { color: "#fff", fontSize: 17, fontWeight: "800" },
+  priceInput: { backgroundColor: "#f8fafc", borderRadius: 16, padding: 16, fontSize: 18, textAlign: "center", marginBottom: 20, borderWidth: 1, borderColor: "#e2e8f0", color: "#1e293b", width: "100%", fontWeight: "700" },
+  progressBarBg: { width: "100%", height: 8, backgroundColor: "#e2e8f0", borderRadius: 4, overflow: "hidden" },
+  progressBarFill: { height: "100%", backgroundColor: "#8b5cf6", borderRadius: 4 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 32 },
   modalContent: { backgroundColor: "#fff", borderRadius: 32, padding: 32, alignItems: "center", width: "100%", maxWidth: 340 },
   successIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#10b981", justifyContent: "center", alignItems: "center", marginBottom: 24, elevation: 4, shadowColor: "#10b981", shadowOpacity: 0.3, shadowRadius: 10 },
