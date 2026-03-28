@@ -9,5 +9,7 @@ import lombok.Data;
 public class BookingStatusUpdateRequest {
 	@NotNull
 	private BookingStatus status;
+	
+	private Double finalPrice;
 }
 

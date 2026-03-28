@@ -21,5 +21,6 @@ public class BookingResponse {
 	private BookingStatus status;
 	private Instant createdAt;
 	private String storeCode;
+	private Double finalPrice;
 }
 

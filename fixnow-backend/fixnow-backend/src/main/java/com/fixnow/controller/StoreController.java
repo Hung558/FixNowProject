@@ -35,12 +35,12 @@ public class StoreController {
     @PostMapping("/join")
     public ResponseEntity<StoreResponse> joinStore(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam String code) {
+            @RequestParam("code") String code) {
         return ResponseEntity.ok(storeService.joinStore(userDetails.getUsername(), code));
     }
 
     @GetMapping("/{code}")
-    public ResponseEntity<StoreResponse> getStoreByCode(@PathVariable String code) {
+    public ResponseEntity<StoreResponse> getStoreByCode(@PathVariable("code") String code) {
         return ResponseEntity.ok(storeService.getStoreByCode(code));
     }
 }

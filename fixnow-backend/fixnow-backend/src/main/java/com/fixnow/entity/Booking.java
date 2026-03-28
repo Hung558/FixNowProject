@@ -57,6 +57,8 @@ public class Booking {
 	@Column(nullable = false)
 	private BookingStatus status;
 
+	private Double finalPrice;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
