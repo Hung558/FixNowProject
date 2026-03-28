@@ -131,21 +131,20 @@ npx expo start
 
 ---
 
-## 📸 Giao Diện Demo
+## 🎯 Giá Trị Cốt Lõi & Định Hướng
 
-*Dưới đây là một số hình ảnh minh họa về giao diện ứng dụng (Cập nhật liên tục)*
+Hệ thống **FixNow** được định hướng phát triển không chỉ dừng lại ở một ứng dụng đặt lịch, mà còn là một hệ sinh thái quản lý dịch vụ sửa chữa thông minh tại Việt Nam.
 
-| Trang chủ | Đặt lịch | Đơn hàng |
-| :--: | :--: | :--: |
-| ![Home](https://via.placeholder.com/200x400?text=Home+Screen) | ![Booking](https://via.placeholder.com/200x400?text=Booking+Screen) | ![Orders](https://via.placeholder.com/200x400?text=Order+History) |
+### 💎 Tiêu chí chất lượng
+- **Đảm bảo bảo mật:** Dữ liệu người dùng và giao dịch được mã hóa và bảo vệ nghiêm ngặt.
+- **Tối ưu trải nghiệm:** Giao diện được thiết kế tinh gọn, dễ sử dụng cho cả người cao tuổi và những người không rành công nghệ.
+- **Khả năng mở rộng:** Kiến trúc Backend sẵn sàng cho việc tích hợp các công nghệ mới như AI gợi ý thợ hoặc thanh toán tự động qua cổng quốc tế.
 
----
-
-## 📄 Giấy Phép & Tác Giả
-
-Dự án được phát triển bởi **Team FixNow** thuộc môn học **MMA301**.
-- Giảng viên hướng dẫn: ...
-- Thành viên: ...
+### 🗺️ Lộ trình phát triển (Roadmap)
+*   [ ] Tích hợp hệ thống định vị GPS để theo dõi thợ theo thời gian thực.
+*   [ ] Xây dựng hệ thống thanh toán điện tử (VNPay/Momo).
+*   [ ] Áp dụng AI để phân tích và gợi ý gói sửa chữa tối ưu dựa trên mô tả lỗi của khách hàng.
+*   [ ] Mở rộng mạng lưới đối tác trên toàn quốc.
 
 ---
 ⭐ *Đừng quên thả sao (Star) nếu bạn thấy dự án này thú vị!*
